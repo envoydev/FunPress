@@ -54,14 +54,14 @@
                 <Border Grid.Column="0" BorderThickness="0,1,0,0" BorderBrush="Black">
                     <StackPanel>
                         <Button Content="Choose directory with images"
-                        Command="{Binding Path=GetImagesFromFolderCommand}"
-                        Height="30" Margin="5,5,5,5" />
+                                Command="{Binding Path=GetImagesFromFolderCommand}"
+                                Height="30" Margin="5,5,5,5" />
 
                         <ListView ItemsSource="{Binding Path=AvailableImages}"
-                          SelectedItem="{Binding Path=SelectedImage}"
-                          DisplayMemberPath="ImageName"
-                          Height="365"
-                          ScrollViewer.VerticalScrollBarVisibility="Visible">
+                                  SelectedItem="{Binding Path=SelectedImage}"
+                                  DisplayMemberPath="ImageName"
+                                  Height="365"
+                                  ScrollViewer.VerticalScrollBarVisibility="Visible">
                             <b:Interaction.Behaviors>
                                 <behaviorsListViews:ListViewAutoScrollBehavior />
                             </b:Interaction.Behaviors>
@@ -125,6 +125,7 @@
                                 <TextBlock Grid.Row="0"
                                            Text="{Binding Path=PrintResult}"
                                            VerticalAlignment="Center" HorizontalAlignment="Center"
+                                           TextWrapping="Wrap"
                                            Foreground="Green"
                                            d:Text="Printing started!"/>
 

@@ -387,7 +387,7 @@ namespace FunPress.ViewModels.Implementations
                     _logger.LogInformation("Invoke in {Method}. Selected printer type is {Type}", 
                         nameof(PrintPressAsync), SelectedPrinter?.Type);
 
-                    PrintResult = "Press is generated. But wouldn't be printed because printer is not connected";
+                    PrintResult = "Press is generated, but won't be printed because printer is not selected.";
 
                     return;
                 }
@@ -437,17 +437,6 @@ namespace FunPress.ViewModels.Implementations
                 {
                     _logger.LogInformation("Selected printer: {SelectedPrinter}", SelectedPrinter);
 
-                    if (SelectedPrinter.Type == PrinterType.None)
-                    {
-                        _isNeedPrintingAfterImageIsAppear = false;
-
-                        PrinterButtonVisibility = Visibility.Hidden;
-                    }
-                    else
-                    {
-                        PrinterButtonVisibility = Visibility.Visible;
-                    }
-
                     break;
                 }
                 case nameof(SelectedPrinterAction):
@@ -456,21 +445,15 @@ namespace FunPress.ViewModels.Implementations
 
                     if (SelectedPrinterAction.Type == PrinterActionType.Automatic)
                     {
-                        if (SelectedPrinter.Type == PrinterType.Active)
-                        {
-                            _isNeedPrintingAfterImageIsAppear = true;
+                        _isNeedPrintingAfterImageIsAppear = true;
 
-                            PrinterButtonVisibility = Visibility.Hidden;
-                        }
+                        PrinterButtonVisibility = Visibility.Hidden;
                     }
                     else
                     {
-                        if (SelectedPrinter.Type == PrinterType.Active)
-                        {
-                            _isNeedPrintingAfterImageIsAppear = false;
+                        _isNeedPrintingAfterImageIsAppear = false;
 
-                            PrinterButtonVisibility = Visibility.Visible;
-                        }
+                        PrinterButtonVisibility = Visibility.Visible;
                     }
 
                     break;
