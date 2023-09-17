@@ -1,0 +1,139 @@
+﻿<Window x:Class="FunPress.Startup.Views.FunPressView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:implementations="clr-namespace:FunPress.ViewModels.Implementations;assembly=FunPress.ViewModels"
+        xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
+        xmlns:behaviorsListViews="clr-namespace:FunPress.Startup.Behaviors.ListViews"
+        mc:Ignorable="d"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Title="Fun Press" 
+        Height="450" 
+        Width="750"
+        d:DataContext="{d:DesignInstance Type=implementations:FunPressViewModel}">
+
+    <Border BorderThickness="2" BorderBrush="Black">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40" />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" MouseDown="OnMouseDown" VerticalAlignment="Center" Cursor="Hand">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           FontWeight="Bold" FontSize="20"
+                           Text="{Binding Path=ApplicationTitle}" 
+                           Margin="5,0,0,0" 
+                           d:Text="Fun Press"/>
+
+                <Button Grid.Column="1" 
+                        VerticalContentAlignment="Center"
+                        HorizontalAlignment="Center"
+                        Content="X"
+                        Command="{Binding Path=ApplicationShutdownCommandAsync}"
+                        Width="25" Height="25" Margin="0,0,5,0" Padding="0"
+                        Foreground="White" />
+
+            </Grid>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="250"/>
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" BorderThickness="0,1,0,0" BorderBrush="Black">
+                    <StackPanel>
+                        <Button Content="Choose directory with images"
+                        Command="{Binding Path=GetImagesFromFolderCommand}"
+                        Height="30" Margin="5,5,5,5" />
+
+                        <ListView ItemsSource="{Binding Path=AvailableImages}"
+                          SelectedItem="{Binding Path=SelectedImage}"
+                          DisplayMemberPath="ImageName"
+                          Height="365"
+                          ScrollViewer.VerticalScrollBarVisibility="Visible">
+                            <b:Interaction.Behaviors>
+                                <behaviorsListViews:ListViewAutoScrollBehavior />
+                            </b:Interaction.Behaviors>
+                        </ListView>
+                    </StackPanel>
+                </Border>
+
+                <Grid Grid.Column="1">
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" BorderThickness="1,1,0,1" BorderBrush="Black" Padding="10">
+                        <Image Source="{Binding Path=SelectedImage.ImagePath}" />
+                    </Border>
+
+                    <Border Grid.Row="1" BorderThickness="1,0,0,0" BorderBrush="Black">
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" BorderThickness="0,0,1,0" BorderBrush="Black">
+                                <ListView ItemsSource="{Binding Path=AvailablePrinterNames}"
+                                  SelectedItem="{Binding Path=SelectedPrinterName}"
+                                  Height="200"
+                                  ScrollViewer.VerticalScrollBarVisibility="Visible" />
+                            </Border>
+
+                            <Grid Grid.Column="1">
+
+                                <Grid.RowDefinitions>
+                                    <RowDefinition />
+                                    <RowDefinition Height="70" />
+                                </Grid.RowDefinitions>
+
+                                <StackPanel Grid.Row="0" Orientation="Vertical"
+                                    VerticalAlignment="Center" HorizontalAlignment="Center">
+
+                                    <Label Content="Current printer:"
+                                   VerticalAlignment="Center" HorizontalAlignment="Center"
+                                   Margin="0,0,0,10"/>
+
+                                    <TextBlock Text="{Binding Path=SelectedPrinterName}"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center"
+                                       d:Text="Selected printer name"/>
+
+                                    <TextBlock Text="{Binding Path=PrintResult}"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center"
+                                       Foreground="Green"
+                                       Margin="0,20,0,0"
+                                       d:Text="Printing started!"/>
+
+                                </StackPanel>
+
+                                <Button Grid.Row="1" 
+                                Content="Print" 
+                                Command="{Binding Path=PrintImageCommand}"
+                                Width="100"/>
+
+                            </Grid>
+
+                        </Grid>
+
+                    </Border>
+                </Grid>
+
+            </Grid>
+
+        </Grid>
+    </Border>
+</Window>

@@ -1,0 +1,68 @@
+﻿<Window x:Class="FunPress.Startup.Views.Common.MessageDialogView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:implementations="clr-namespace:FunPress.ViewModels.Implementations;assembly=FunPress.ViewModels"
+        mc:Ignorable="d"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        Topmost="True"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterScreen"
+        MinHeight="150"
+        Width="506"
+        d:DataContext="{d:DesignInstance Type=implementations:MessageDialogViewModel}">
+
+    <Border Padding="10" BorderThickness="1" BorderBrush="Purple">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition />
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="0,0,0,20">
+                <!-- ReSharper disable all MarkupAttributeTypo -->
+                <TextBox Text="{Binding Path=Text}"
+                         AutomationProperties.AutomationId="TextMessage"
+                         FontSize="14px" TextWrapping="WrapWithOverflow" IsReadOnly="True" BorderThickness="0"
+                         d:Text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus lacinia odio vitae vestibulum vestibulum. Cras porta, lectus nec convallis facilisis, enim ligula venenatis augue, in finibus nisl erat in sapien. Integer posuere, orci nec facilisis ullamcorper, velit nisl fermentum elit, at pretium purus velit a ipsum.">
+                </TextBox>
+            </Grid>
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
+
+                <Button Visibility="{Binding Path=OkButtonVisibility}"
+                        Content="Ok" 
+                        Command="{Binding Path=PositiveResultCommandAsync}"
+                        AutomationProperties.AutomationId="OkButton"
+                        Padding="10,5" Margin="10,0,0,0"
+                        d:Content="Ok" />
+
+                <Button Visibility="{Binding Path=YesButtonVisibility}"
+                        Content="Yes" 
+                        Command="{Binding Path=PositiveResultCommandAsync}"
+                        Padding="10,5" Margin="10,0,0,0"
+                        AutomationProperties.AutomationId="YesButton"
+                        d:Content="Yes" />
+
+                <Button Visibility="{Binding Path=CancelButtonVisibility}"
+                        Content="Cancel" 
+                        Command="{Binding NegativeResultCommandAsync}"
+                        Padding="10,5" Margin="10,0,0,0"
+                        AutomationProperties.AutomationId="CancelButton"
+                        d:Content="Cancel" />
+
+                <Button Visibility="{Binding NoButtonVisibility}"
+                        Content="No" 
+                        Command="{Binding Path=NegativeResultCommandAsync}"
+                        Padding="10,5" Margin="10,0,0,0"
+                        AutomationProperties.AutomationId="NoButton"
+                        d:Content="No" />
+
+            </StackPanel>
+
+        </Grid>
+    </Border>
+
+</Window>
