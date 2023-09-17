@@ -6,6 +6,7 @@
         xmlns:implementations="clr-namespace:FunPress.ViewModels.Implementations;assembly=FunPress.ViewModels"
         xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
         xmlns:behaviorsListViews="clr-namespace:FunPress.Startup.Behaviors.ListViews"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
         WindowStyle="None"
         ResizeMode="NoResize"
@@ -88,10 +89,30 @@
                             </Grid.ColumnDefinitions>
 
                             <Border Grid.Column="0" BorderThickness="0,0,1,0" BorderBrush="Black">
-                                <ListView ItemsSource="{Binding Path=AvailablePrinterNames}"
-                                  SelectedItem="{Binding Path=SelectedPrinterName}"
-                                  Height="200"
-                                  ScrollViewer.VerticalScrollBarVisibility="Visible" />
+                                <Grid>
+
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                    </Grid.RowDefinitions>
+
+                                    <ComboBox Grid.Row="0" 
+                                              Style="{StaticResource MaterialDesignFloatingHintComboBox}"
+                                              Width="200"
+                                              materialDesign:HintAssist.Hint="Select a printer" 
+                                              ItemsSource="{Binding Path=PrinterNames}"
+                                              SelectedItem="{Binding Path=SelectedPrinter}" 
+                                              DisplayMemberPath="Name" />
+
+                                    <ComboBox Grid.Row="1" 
+                                              Style="{StaticResource MaterialDesignFloatingHintComboBox}"
+                                              Width="200"
+                                              materialDesign:HintAssist.Hint="Select printing type" 
+                                              ItemsSource="{Binding Path=PrinterActions}"
+                                              SelectedItem="{Binding Path=SelectedPrinterAction}"
+                                              DisplayMemberPath="Name" />
+
+                                </Grid>
                             </Border>
 
                             <Grid Grid.Column="1">
@@ -101,29 +122,18 @@
                                     <RowDefinition Height="70" />
                                 </Grid.RowDefinitions>
 
-                                <StackPanel Grid.Row="0" Orientation="Vertical"
-                                    VerticalAlignment="Center" HorizontalAlignment="Center">
-
-                                    <Label Content="Current printer:"
-                                   VerticalAlignment="Center" HorizontalAlignment="Center"
-                                   Margin="0,0,0,10"/>
-
-                                    <TextBlock Text="{Binding Path=SelectedPrinterName}"
-                                       VerticalAlignment="Center" HorizontalAlignment="Center"
-                                       d:Text="Selected printer name"/>
-
-                                    <TextBlock Text="{Binding Path=PrintResult}"
-                                       VerticalAlignment="Center" HorizontalAlignment="Center"
-                                       Foreground="Green"
-                                       Margin="0,20,0,0"
-                                       d:Text="Printing started!"/>
-
-                                </StackPanel>
+                                <TextBlock Grid.Row="0"
+                                           Text="{Binding Path=PrintResult}"
+                                           VerticalAlignment="Center" HorizontalAlignment="Center"
+                                           Foreground="Green"
+                                           d:Text="Printing started!"/>
 
                                 <Button Grid.Row="1" 
-                                Content="Print" 
-                                Command="{Binding Path=PrintImageCommand}"
-                                Width="100"/>
+                                        Content="Print" 
+                                        Visibility="{Binding Path=PrinterButtonVisibility}"
+                                        Command="{Binding Path=PrintPressCommand}"
+                                        Width="100"
+                                        d:Visibility="Visible"/>
 
                             </Grid>
 

@@ -15,6 +15,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Threading;
 using FunPress.Common.Constants;
@@ -39,20 +40,20 @@ namespace FunPress.ViewModels.Implementations
         private const string TrackFilesJobName = "TrackNewFiles";
 
         private IManageView _viewModelView;
-        private DispatcherTimer _clearPrintingResultMessageTimer;
         private bool _isActionAvailable = true;
         private string _currentDirectory;
+        private bool _isNeedPrintingAfterImageIsAppear;
         private readonly string[] _validExtensions = { ".jpg", ".png", ".jpeg" };
 
         #region Observable properties
 
-        private ObservableCollection<string> _availablePrinterNames;
-        public ObservableCollection<string> AvailablePrinterNames
+        private ObservableCollection<PrinterName> _printerNames;
+        public ObservableCollection<PrinterName> PrinterNames
         {
-            get => _availablePrinterNames;
+            get => _printerNames;
             private set
             {
-                _availablePrinterNames = value;
+                _printerNames = value;
                 NotifyPropertyChanged();
             }
         }
@@ -68,6 +69,39 @@ namespace FunPress.ViewModels.Implementations
             }
         }
 
+        private ObservableCollection<PrinterAction> _printerActions;
+        public ObservableCollection<PrinterAction> PrinterActions
+        {
+            get => _printerActions;
+            private set
+            {
+                _printerActions = value;
+                NotifyPropertyChanged();
+            }
+        }
+
+        private PrinterName _selectedPrinter;
+        public PrinterName SelectedPrinter
+        {
+            get => _selectedPrinter;
+            set
+            {
+                _selectedPrinter = value;
+                NotifyPropertyChanged();
+            }
+        }
+
+        private PrinterAction _selectedPrinterAction;
+        public PrinterAction SelectedPrinterAction
+        {
+            get => _selectedPrinterAction;
+            set
+            {
+                _selectedPrinterAction = value;
+                NotifyPropertyChanged();
+            }
+        }
+
         private FileImageInfo _selectedImage;
         public FileImageInfo SelectedImage
         {
@@ -79,24 +113,13 @@ namespace FunPress.ViewModels.Implementations
             }
         }
 
-        private string _applicationTitle;
-        public string ApplicationTitle
+        private Visibility _printerButtonVisibility;
+        public Visibility PrinterButtonVisibility
         {
-            get => _applicationTitle;
+            get => _printerButtonVisibility;
             set
             {
-                _applicationTitle = value;
-                NotifyPropertyChanged();
-            }
-        }
-
-        private string _selectedPrinterName;
-        public string SelectedPrinterName
-        {
-            get => _selectedPrinterName;
-            set
-            {
-                _selectedPrinterName = value;
+                _printerButtonVisibility = value;
                 NotifyPropertyChanged();
             }
         }
@@ -112,13 +135,24 @@ namespace FunPress.ViewModels.Implementations
             }
         }
 
+        private string _applicationTitle;
+        public string ApplicationTitle
+        {
+            get => _applicationTitle;
+            set
+            {
+                _applicationTitle = value;
+                NotifyPropertyChanged();
+            }
+        }
+
         #endregion
 
         #region Commands
 
         public ICommand GetImagesFromFolderCommand { get; private set; }
         public ICommand ApplicationShutdownCommandAsync { get; private set; }
-        public ICommand PrintImageCommand { get; private set; }
+        public ICommand PrintPressCommand { get; private set; }
 
         #endregion
 
@@ -154,16 +188,20 @@ namespace FunPress.ViewModels.Implementations
 
         public Task InitializeDataAsync(object param = null)
         {
-            _clearPrintingResultMessageTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-            _clearPrintingResultMessageTimer.Tick += ClearPrintingResultMessageTimer_Tick;
+            var printerNames = GetPrinterNames().ToArray();
+            var printerActions = GetPrinterActions().ToArray();
 
             ApplicationTitle = ApplicationConstants.ApplicationName;
+            PrinterButtonVisibility = Visibility.Hidden;
             SelectedImage = new FileImageInfo();
-            AvailablePrinterNames = new ObservableCollection<string>(_printerService.GetPrinterNames());
+            SelectedPrinter = printerNames.First();
+            SelectedPrinterAction = printerActions.First();
+            PrinterNames = new ObservableCollection<PrinterName>(printerNames);
+            PrinterActions = new ObservableCollection<PrinterAction>(printerActions);
             AvailableImages = new ObservableCollection<FileImageInfo>();
 
             ApplicationShutdownCommandAsync = new RelayAsyncCommand(ApplicationShutdownAsync, CanExecuteCommand);
-            PrintImageCommand = new RelayAsyncCommand(PrintImageAsync, CanExecuteCommand);
+            PrintPressCommand = new RelayAsyncCommand(PrintPressAsync, CanExecuteCommand);
             GetImagesFromFolderCommand = new RelayCommand(GetImagesFromFolder, CanExecuteCommand);
 
             PropertyChanged += FunPressViewModel_PropertyChanged;
@@ -309,21 +347,16 @@ namespace FunPress.ViewModels.Implementations
             }
         }
 
-        private async Task PrintImageAsync(object param = null)
+        private async Task PrintPressAsync(object param = null)
         {
             try
             {
                 _isActionAvailable = false;
 
                 _logger.LogInformation("Invoke in {Method}. Start invoking", 
-                    nameof(PrintImageAsync));
+                    nameof(PrintPressAsync));
 
-                if (string.IsNullOrWhiteSpace(SelectedPrinterName))
-                {
-                    await GenerateErrorNotificationAsync("Printer does not selected. Please, select printer name.");
-
-                    return;
-                }
+                PrintResult = string.Empty;
 
                 if (string.IsNullOrWhiteSpace(SelectedImage.ImagePath))
                 {
@@ -333,10 +366,10 @@ namespace FunPress.ViewModels.Implementations
                 }
 
                 _logger.LogInformation("Invoke in {Method}. Selected Printer: {SelectedPrinter}", 
-                    nameof(PrintImageAsync), SelectedPrinterName);
+                    nameof(PrintPressAsync), SelectedPrinter);
 
                 _logger.LogInformation("Invoke in {Method}. Selected image: {SelectedImage}", 
-                    nameof(PrintImageAsync), SelectedImage.ImagePath);
+                    nameof(PrintPressAsync), SelectedImage.ImagePath);
 
                 var newImageFileName = Path.Combine(_applicationEnvironment.GetResultsPath(), 
                     $"{_dateTimeService.GetDateTimeNow():dd_MM_yyyy__HH_mm_ss_fff}.jpg");
@@ -349,23 +382,33 @@ namespace FunPress.ViewModels.Implementations
                     return;
                 }
 
-                //var printingResult = _printerService.PrintImage(SelectedPrinterName, newImageFileName);
-                //if (!printingResult)
-                //{
-                //    await GenerateErrorNotificationAsync("Cannot print image. Please check logs.");
+                if (SelectedPrinter == null || SelectedPrinter.Type == PrinterType.None)
+                {
+                    _logger.LogInformation("Invoke in {Method}. Selected printer type is {Type}", 
+                        nameof(PrintPressAsync), SelectedPrinter?.Type);
 
-                //    return;
-                //}
+                    PrintResult = "Press is generated. But wouldn't be printed because printer is not connected";
+
+                    return;
+                }
+
+                PrintResult = "Press is generated!";
+
+                var printingResult = _printerService.PrintImage(SelectedPrinter.Name, newImageFileName);
+                if (!printingResult)
+                {
+                    await GenerateErrorNotificationAsync("Cannot print image. Please check logs.");
+
+                    return;
+                }
 
                 PrintResult = "Printing started!";
 
-                _clearPrintingResultMessageTimer.Start();
-
-                _logger.LogInformation("Invoke in {Method}. Printing is finished", nameof(PrintImageAsync));
+                _logger.LogInformation("Invoke in {Method}. Printing is finished", nameof(PrintPressAsync));
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Invoke in {Method}", nameof(PrintImageAsync));
+                _logger.LogError(exception, "Invoke in {Method}", nameof(PrintPressAsync));
             }
             finally
             {
@@ -380,23 +423,58 @@ namespace FunPress.ViewModels.Implementations
 
         #region Events
 
-        private void ClearPrintingResultMessageTimer_Tick(object sender, EventArgs args)
-        {
-            PrintResult = string.Empty;
-
-            _clearPrintingResultMessageTimer.Stop();
-        }
-
         private void FunPressViewModel_PropertyChanged(object sender, PropertyChangedEventArgs args)
         {
             switch (args.PropertyName)
             {
                 case nameof(SelectedImage):
+                {
                     _logger.LogInformation("Selected image: {SelectedImage}", SelectedImage.ImagePath);
+                    
                     break;
-                case nameof(SelectedPrinterName):
-                    _logger.LogInformation("Selected printer: {SelectedPrinter}", SelectedPrinterName);
+                }
+                case nameof(SelectedPrinter):
+                {
+                    _logger.LogInformation("Selected printer: {SelectedPrinter}", SelectedPrinter);
+
+                    if (SelectedPrinter.Type == PrinterType.None)
+                    {
+                        _isNeedPrintingAfterImageIsAppear = false;
+
+                        PrinterButtonVisibility = Visibility.Hidden;
+                    }
+                    else
+                    {
+                        PrinterButtonVisibility = Visibility.Visible;
+                    }
+
                     break;
+                }
+                case nameof(SelectedPrinterAction):
+                {
+                    _logger.LogInformation("Selected printer action: {SelectedPrinterActionType}", SelectedPrinterAction.Type);
+
+                    if (SelectedPrinterAction.Type == PrinterActionType.Automatic)
+                    {
+                        if (SelectedPrinter.Type == PrinterType.Active)
+                        {
+                            _isNeedPrintingAfterImageIsAppear = true;
+
+                            PrinterButtonVisibility = Visibility.Hidden;
+                        }
+                    }
+                    else
+                    {
+                        if (SelectedPrinter.Type == PrinterType.Active)
+                        {
+                            _isNeedPrintingAfterImageIsAppear = false;
+
+                            PrinterButtonVisibility = Visibility.Visible;
+                        }
+                    }
+
+                    break;
+                }
             }
         }
 
@@ -415,12 +493,6 @@ namespace FunPress.ViewModels.Implementations
             await _viewFactory.Get<IMessageDialogView>().ShowDialogViewAsync(viewParameters);
         }
 
-        private IEnumerable<string> GetImages(string directoryToCheck)
-        {
-            return Directory.GetFiles(directoryToCheck, "*.*", SearchOption.AllDirectories)
-                .Where(file => _validExtensions.Contains(Path.GetExtension(file).ToLowerInvariant()));
-        }
-
         private async Task CheckNewImages(CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested || string.IsNullOrWhiteSpace(_currentDirectory))
@@ -430,7 +502,7 @@ namespace FunPress.ViewModels.Implementations
 
             var imagesPath = GetImages(_currentDirectory).ToArray();
 
-            await _applicationService.DispatcherInvokeAsync(() =>
+            await _applicationService.DispatcherInvokeAsync(async () =>
             {
                 if (imagesPath.Length > AvailableImages.Count)
                 {
@@ -441,11 +513,24 @@ namespace FunPress.ViewModels.Implementations
                             continue;
                         }
 
+                        _logger.LogInformation("Invoke in {Method}. New image is appeared. Image path: {ImagePath}", 
+                            nameof(CheckNewImages), imagePath);
+
                         AvailableImages.Add(new FileImageInfo
                         {
                             ImageName = Path.GetFileName(imagePath),
                             ImagePath = imagePath
                         });
+                    }
+
+                    if (_isNeedPrintingAfterImageIsAppear)
+                    {
+                        SelectedImage = AvailableImages.Last();
+
+                        _logger.LogInformation("Invoke in {Method}. New image ig going to be printed appeared. Image path: {ImagePath}", 
+                            nameof(CheckNewImages), SelectedImage.ImagePath);
+
+                        await PrintPressAsync();
                     }
                 }
                 else if (imagesPath.Length < AvailableImages.Count)
@@ -453,10 +538,59 @@ namespace FunPress.ViewModels.Implementations
                     foreach (var imagePath in AvailableImages.Where(x => imagesPath.All(path => path != x.ImagePath)))
                     {
                         AvailableImages.Remove(imagePath);
+
+                        _logger.LogInformation("Invoke in {Method}. Image is deleted. Image path: {ImagePath}", 
+                            nameof(CheckNewImages), imagePath);
                     }
                 }
 
             }, DispatcherPriority.Send, cancellationToken);
+        }
+
+        private IEnumerable<string> GetImages(string directoryToCheck)
+        {
+            return Directory.GetFiles(directoryToCheck, "*.*", SearchOption.AllDirectories)
+                .Where(file => _validExtensions.Contains(Path.GetExtension(file).ToLowerInvariant()));
+        }
+
+        private IEnumerable<PrinterName> GetPrinterNames()
+        {
+            var printers = new List<PrinterName>
+            {
+                new PrinterName
+                {
+                    Name = "Without printer",
+                    Type = PrinterType.None
+                }
+            };
+
+            var printersName = _printerService.GetPrinterNames()
+                .Select(name => new PrinterName
+                {
+                    Name = name,
+                    Type = PrinterType.Active
+                });
+
+            printers.AddRange(printersName);
+
+            return printers;
+        }
+
+        private static IEnumerable<PrinterAction> GetPrinterActions()
+        {
+            return new[]
+            {
+                new PrinterAction
+                {
+                    Name = "Manually",
+                    Type = PrinterActionType.Manually
+                },
+                new PrinterAction
+                {
+                    Name = "Automatic",
+                    Type = PrinterActionType.Automatic
+                }
+            };
         }
 
         #endregion

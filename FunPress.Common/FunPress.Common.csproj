@@ -45,7 +45,11 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Types\Enums\ConfigurationType.cs" />
     <Compile Include="Types\Enums\MessageDialogButton.cs" />
+    <Compile Include="Types\Enums\PrinterActionType.cs" />
+    <Compile Include="Types\Enums\PrinterType.cs" />
     <Compile Include="Types\Models\FileImageInfo.cs" />
+    <Compile Include="Types\Models\PrinterAction.cs" />
+    <Compile Include="Types\Models\PrinterName.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
