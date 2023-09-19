@@ -192,7 +192,7 @@ namespace FunPress.ViewModels.Implementations
             var printerActions = GetPrinterActions().ToArray();
 
             ApplicationTitle = ApplicationConstants.ApplicationName;
-            PrinterButtonVisibility = Visibility.Hidden;
+            PrinterButtonVisibility = Visibility.Visible;
             SelectedImage = new FileImageInfo();
             SelectedPrinter = printerNames.First();
             SelectedPrinterAction = printerActions.First();

@@ -25,14 +25,14 @@ namespace FunPress.Core.Services.Implementations
         {
             try
             {
-                var templatePath = Path.Combine(_applicationEnvironment.GetTemplatesPath(), "template_1.JPG");
+                var templatePath = Path.Combine(_applicationEnvironment.GetTemplatesPath(), "template_1.jpg");
 
                 var backgroundImage = new Bitmap(templatePath);
 
-                const int overlayImageLeft = 130;
-                const int overlayImageTop = 770;
-                const int overlayImageHeight = 2000 - 770;
-                var overlayImageWidth = backgroundImage.Width - 130 * 2;
+                const int overlayImageLeft = 20;
+                const int overlayImageTop = 265;
+                const int overlayImageHeight = 655 - overlayImageTop;
+                const int overlayImageWidth = 625 - overlayImageLeft;
 
                 var overlayImage = new Bitmap(imagePath);
 
