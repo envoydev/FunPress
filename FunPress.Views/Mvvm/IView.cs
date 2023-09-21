@@ -5,6 +5,7 @@ namespace FunPress.Views.Mvvm
 {
     public interface IView : IManageView
     {
+        // ReSharper disable once UnusedParameter.Global
         Task ShowViewAsync(CreateViewParameters param = null);
     }
 }

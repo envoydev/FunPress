@@ -17,13 +17,12 @@ namespace FunPress.Core.Services.Implementations
         private ConcurrentDictionary<string, JobContainer> _jobs;
 
         public JobService(
-            ILogger<JobService> logger,
-            ILogger<JobContainer> jobContainerLogger, 
+            ILoggerFactory loggerFactory,
             IDelayService delayService
             )
         {
-            _logger = logger;
-            _jobContainerLogger = jobContainerLogger;
+            _logger = loggerFactory.CreateLogger<JobService>();
+            _jobContainerLogger = loggerFactory.CreateLogger<JobContainer>();
             _delayService = delayService;
 
             _jobs = new ConcurrentDictionary<string, JobContainer>();
@@ -67,7 +66,7 @@ namespace FunPress.Core.Services.Implementations
 
                 if (!result)
                 {
-                    _logger.LogWarning("Invoke in {Method}. Job with {Key} did not added.",
+                    _logger.LogWarning("Invoke in {Method}. Job with {Key} did not added",
                         nameof(FinishAllJobs), key);
 
                     return false;
@@ -103,7 +102,7 @@ namespace FunPress.Core.Services.Implementations
 
                 if (!result)
                 {
-                    _logger.LogWarning("Invoke in {Method}. Job with {Key} did not started.",
+                    _logger.LogWarning("Invoke in {Method}. Job with {Key} did not started",
                         nameof(StartJob), key);
 
                     return false;
@@ -139,7 +138,7 @@ namespace FunPress.Core.Services.Implementations
                 var isJobRemoved = _jobs.TryRemove(key, out var job);
                 if (!isJobRemoved)
                 {
-                    _logger.LogWarning("Invoke in {Method}. Job with {Key} did not removed.",
+                    _logger.LogWarning("Invoke in {Method}. Job with {Key} did not removed",
                         nameof(FinishJob), key);
 
                     return false;

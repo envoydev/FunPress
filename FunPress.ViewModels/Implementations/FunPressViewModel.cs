@@ -128,7 +128,7 @@ namespace FunPress.ViewModels.Implementations
         public string PrintResult
         {
             get => _printResult;
-            set
+            private set
             {
                 _printResult = value;
                 NotifyPropertyChanged();
@@ -139,7 +139,7 @@ namespace FunPress.ViewModels.Implementations
         public string ApplicationTitle
         {
             get => _applicationTitle;
-            set
+            private set
             {
                 _applicationTitle = value;
                 NotifyPropertyChanged();
@@ -366,7 +366,7 @@ namespace FunPress.ViewModels.Implementations
                 }
 
                 _logger.LogInformation("Invoke in {Method}. Selected Printer: {SelectedPrinter}", 
-                    nameof(PrintPressAsync), SelectedPrinter);
+                    nameof(PrintPressAsync), SelectedPrinter.Name);
 
                 _logger.LogInformation("Invoke in {Method}. Selected image: {SelectedImage}", 
                     nameof(PrintPressAsync), SelectedImage.ImagePath);
@@ -435,7 +435,7 @@ namespace FunPress.ViewModels.Implementations
                 }
                 case nameof(SelectedPrinter):
                 {
-                    _logger.LogInformation("Selected printer: {SelectedPrinter}", SelectedPrinter);
+                    _logger.LogInformation("Selected printer: {SelectedPrinter}", SelectedPrinter.Name);
 
                     break;
                 }
@@ -523,7 +523,7 @@ namespace FunPress.ViewModels.Implementations
                         AvailableImages.Remove(imagePath);
 
                         _logger.LogInformation("Invoke in {Method}. Image is deleted. Image path: {ImagePath}", 
-                            nameof(CheckNewImages), imagePath);
+                            nameof(CheckNewImages), imagePath.ImagePath);
                     }
                 }
 

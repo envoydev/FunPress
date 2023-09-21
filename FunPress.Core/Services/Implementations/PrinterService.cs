@@ -37,22 +37,68 @@ namespace FunPress.Core.Services.Implementations
 
             try
             {
+                var printerSettings = new PrinterSettings
+                {
+                    PrinterName = printerName
+                };
+
+                _logger.LogInformation("Page size: {PageSize}", printerSettings.DefaultPageSettings.PaperSize);
+                
                 var printDocument = new PrintDocument();
-                printDocument.PrinterSettings.PrinterName = printerName;
+                printDocument.PrinterSettings = printerSettings;
+                printDocument.DefaultPageSettings.Margins = new Margins(0, 0, 0, 0);
+                printDocument.OriginAtMargins = true;
                 printDocument.PrintPage += (sender, args) =>
                 {
-                    var image = Image.FromFile(imagePath);
+                    using (var img = Image.FromFile(imagePath))
+                    {
+                        // Page dimensions (taking into account the margins)
+                        var pageWidth = args.MarginBounds.Width;
+                        var pageHeight = args.MarginBounds.Height;
 
-                    args.Graphics.DrawImage(image, 0, 0, args.PageBounds.Width, args.PageBounds.Height);
+                        // Image dimensions
+                        var imgWidth = img.Width;
+                        var imgHeight = img.Height;
 
-                    image.Dispose();
+                        // Calculate aspect ratios
+                        var pageRatio = (float)pageWidth / pageHeight;
+                        var imgRatio = (float)imgWidth / imgHeight;
 
+                        // Determine the target dimensions (initialized to image dimensions)
+                        int targetWidth;
+                        int targetHeight;
+
+                        if (imgRatio > pageRatio)
+                        {
+                            // If the image's width-to-height ratio is greater than the page's, scale based on width
+                            targetWidth = pageWidth;
+                            targetHeight = (int)(imgHeight * (pageWidth / (float)imgWidth));
+                        }
+                        else
+                        {
+                            // Otherwise, scale based on height
+                            targetHeight = pageHeight;
+                            targetWidth = (int)(imgWidth * (pageHeight / (float)imgHeight));
+                        }
+
+                        // Center the image on the page
+                        var x = args.MarginBounds.Left + (pageWidth - targetWidth) / 2;
+                        var y = args.MarginBounds.Top + (pageHeight - targetHeight) / 2;
+
+                        // Draw the image
+                        args.Graphics.DrawImage(img, new Rectangle(x, y, targetWidth, targetHeight));
+                    }
+                };
+                printDocument.EndPrint += (sender, args) =>
+                {
+                    printDocument.Dispose();
+                    
                     imagePrintingCompletionSource.SetResult(true);
                 };
 
                 printDocument.Print();
 
-                imagePrintingCompletionSource.Task.Wait(5000);
+                imagePrintingCompletionSource.Task.Wait();
 
                 var result = imagePrintingCompletionSource.Task.Result;
 
