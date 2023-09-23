@@ -6,13 +6,10 @@ namespace FunPress.Core.Services
     public interface IApplicationEnvironment
     {
         string GetApplicationBasePath();
-
-        ConfigurationType GetConfigurationType();
-
-        Version GetApplicationVersion();
-
         string GetTemplatesPath();
-
         string GetResultsPath();
+        string GetSettingsPath();
+        ConfigurationType GetConfigurationType();
+        Version GetApplicationVersion();
     }
 }

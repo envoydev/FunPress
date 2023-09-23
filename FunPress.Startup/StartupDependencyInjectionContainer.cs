@@ -1,13 +1,14 @@
-﻿using FunPress.Views.Factory;
+﻿using FunPress.Startup.Factory;
 using FunPress.Startup.Views;
 using FunPress.Startup.Views.Common;
 using FunPress.Views.DialogViews;
+using FunPress.Views.Factory;
 using FunPress.Views.Views;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace FunPress.Startup.Factory
+namespace FunPress.Startup
 {
-    public static class ViewsDependencyInjectionContainer
+    public static class StartupDependencyInjectionContainer
     {
         public static void Register(IServiceCollection services)
         {

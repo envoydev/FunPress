@@ -107,6 +107,7 @@
       <SubType>Designer</SubType>
     </Page>
     <Compile Include="Behaviors\ListViews\ListViewAutoScrollBehavior.cs" />
+    <Compile Include="StartupDependencyInjectionContainer.cs" />
     <Compile Include="Views\Common\MessageDialogView.xaml.cs">
       <DependentUpon>MessageDialogView.xaml</DependentUpon>
     </Compile>
@@ -118,7 +119,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Factory\ViewFactory.cs" />
-    <Compile Include="Factory\ViewsDependencyInjectionContainer.cs" />
     <Page Include="Views\Common\MessageDialogView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

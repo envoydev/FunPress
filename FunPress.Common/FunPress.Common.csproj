@@ -50,6 +50,7 @@
     <Compile Include="Types\Models\FileImageInfo.cs" />
     <Compile Include="Types\Models\PrinterAction.cs" />
     <Compile Include="Types\Models\PrinterName.cs" />
+    <Compile Include="Types\Models\UserSettings.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

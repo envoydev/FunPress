@@ -13,11 +13,12 @@ namespace FunPress.Core
             services.AddSingleton<IApplicationService, ApplicationService>();
             services.AddSingleton<ISerializeService, SerializeService>();
             services.AddSingleton<IJobService, JobService>();
+            services.AddSingleton<IUserSettingsService, UserSettingsService>();
             services.AddTransient<IDateTimeService, DateTimeService>();
             services.AddTransient<IPrinterService, PrinterService>();
             services.AddTransient<IImageService, ImageService>();
             services.AddTransient<IDelayService, DelayService>();
-
+            
             services.AddLogging(loggingFactory =>
             {
                 loggingFactory.AddApplicationSerilog();

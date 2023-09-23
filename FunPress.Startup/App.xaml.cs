@@ -57,6 +57,12 @@ namespace FunPress.Startup
                 {
                     _logger.LogInformation("@ <Starting v{ApplicationVersion}> @",
                         _applicationEnvironment.GetApplicationVersion());
+                    
+                    _logger.LogInformation("Configuration: {Configuration}",
+                        _applicationEnvironment.GetConfigurationType());
+                    
+                    _logger.LogInformation("Base path: {Configuration}",
+                        _applicationEnvironment.GetApplicationBasePath());
 
                     await _applicationService.DispatcherInvokeAsync(async () =>
                     {

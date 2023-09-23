@@ -28,6 +28,7 @@ namespace FunPress.ViewModels.Implementations
     public class FunPressViewModel : ObservableObject, IFunPressViewModel
     {
         private readonly ILogger<FunPressViewModel> _logger;
+        private readonly IUserSettingsService _userSettingsService;
         private readonly IApplicationEnvironment _applicationEnvironment;
         private readonly IApplicationService _applicationService;
         private readonly IPrinterService _printerService;
@@ -41,7 +42,6 @@ namespace FunPress.ViewModels.Implementations
 
         private IManageView _viewModelView;
         private bool _isActionAvailable = true;
-        private string _currentDirectory;
         private bool _isNeedPrintingAfterImageIsAppear;
         private readonly string[] _validExtensions = { ".jpg", ".png", ".jpeg" };
 
@@ -145,6 +145,17 @@ namespace FunPress.ViewModels.Implementations
                 NotifyPropertyChanged();
             }
         }
+        
+        private string _selectedFolder;
+        public string SelectedFolder
+        {
+            get => _selectedFolder;
+            private set
+            {
+                _selectedFolder = value;
+                NotifyPropertyChanged();
+            }
+        }
 
         #endregion
 
@@ -158,6 +169,7 @@ namespace FunPress.ViewModels.Implementations
 
         public FunPressViewModel(
             ILogger<FunPressViewModel> logger, 
+            IUserSettingsService userSettingsService,
             IApplicationEnvironment applicationEnvironment,
             IApplicationService applicationService, 
             IPrinterService printerService,
@@ -169,6 +181,7 @@ namespace FunPress.ViewModels.Implementations
             )
         {
             _logger = logger;
+            _userSettingsService = userSettingsService;
             _applicationEnvironment = applicationEnvironment;
             _applicationService = applicationService;
             _printerService = printerService;
@@ -193,24 +206,27 @@ namespace FunPress.ViewModels.Implementations
 
             ApplicationTitle = ApplicationConstants.ApplicationName;
             PrinterButtonVisibility = Visibility.Visible;
-            SelectedImage = new FileImageInfo();
+            SelectedFolder = string.Empty;
             SelectedPrinter = printerNames.First();
             SelectedPrinterAction = printerActions.First();
+            SelectedImage = new FileImageInfo();
+            AvailableImages = new ObservableCollection<FileImageInfo>();
             PrinterNames = new ObservableCollection<PrinterName>(printerNames);
             PrinterActions = new ObservableCollection<PrinterAction>(printerActions);
-            AvailableImages = new ObservableCollection<FileImageInfo>();
 
             ApplicationShutdownCommandAsync = new RelayAsyncCommand(ApplicationShutdownAsync, CanExecuteCommand);
             PrintPressCommand = new RelayAsyncCommand(PrintPressAsync, CanExecuteCommand);
-            GetImagesFromFolderCommand = new RelayCommand(GetImagesFromFolder, CanExecuteCommand);
-
+            GetImagesFromFolderCommand = new RelayCommand(SelectFolder, CanExecuteCommand);
+            
             PropertyChanged += FunPressViewModel_PropertyChanged;
-
+            
+            ApplyUserSettings(printerNames, printerActions);
+            
             _logger.LogInformation("Model data initialized");
 
             return Task.CompletedTask;
         }
-
+        
         public void ClearData()
         {
             if (_jobService.IsJobExist(TrackFilesJobName))
@@ -267,86 +283,40 @@ namespace FunPress.ViewModels.Implementations
             }
         }
 
-        private void GetImagesFromFolder(object param = null)
+        private void SelectFolder(object param = null)
         {
             try
             {
                 _isActionAvailable = false;
 
                 _logger.LogInformation("Invoke in {Method}. Start invoking", 
-                    nameof(GetImagesFromFolder));
+                    nameof(SelectFolder));
 
                 using (var folderBrowser = new FolderBrowserDialog())
                 {
                     var result = folderBrowser.ShowDialog();
 
-                    if (result != DialogResult.OK)
+                    if (result != DialogResult.OK || string.IsNullOrWhiteSpace(folderBrowser.SelectedPath))
                     {
                         return;
                     }
 
-                    _currentDirectory = folderBrowser.SelectedPath;
-
-                    _logger.LogInformation("Invoke in {Method}. Folder selected. Current folder: {Folder}", 
-                        nameof(GetImagesFromFolder), _currentDirectory);
-
-                    AvailableImages.Clear();
-
-                    if (_jobService.IsJobExist(TrackFilesJobName))
-                    {
-                        _jobService.FinishJob(TrackFilesJobName);
-                    }
-
-                    _jobService.CreateJob(TrackFilesJobName, TimeSpan.FromSeconds(2), CheckNewImages);
-
-                    try
-                    {
-                        var images = GetImages(_currentDirectory);
-
-                        _logger.LogInformation("Invoke in {Method}. Images in folder: {Images}", 
-                            nameof(GetImagesFromFolder), _serializeService.SerializeObject(images));
-
-                        foreach (var imagePath in images.OrderBy(File.GetLastWriteTime))
-                        {
-                            AvailableImages.Add(new FileImageInfo
-                            {
-                                ImageName = Path.GetFileName(imagePath),
-                                ImagePath = imagePath
-                            });
-                        }
-
-                        _jobService.StartJob(TrackFilesJobName, false);
-
-                        if (!AvailableImages.Any())
-                        {
-                            return;
-                        }
-
-                        SelectedImage = AvailableImages.First();
-
-                        _logger.LogInformation("Invoke in {Method}. Selected image: {Images}", 
-                            nameof(GetImagesFromFolder), _serializeService.SerializeObject(SelectedImage));
-                    }
-                    catch (UnauthorizedAccessException unauthorizedAccessException)
-                    {
-                        _logger.LogDebug(unauthorizedAccessException, "Invoke in {Method}",
-                            nameof(GetImagesFromFolder));
-                    }
+                    SelectedFolder = folderBrowser.SelectedPath;
                 }
             }
             catch (Exception exception)
             {
-                _logger.LogError(exception, "Invoke in {Method}", nameof(GetImagesFromFolder));
+                _logger.LogError(exception, "Invoke in {Method}", nameof(SelectFolder));
             }
             finally
             {
                 _isActionAvailable = true;
 
                 _logger.LogInformation("Invoke in {Method}. Finish invoking", 
-                    nameof(GetImagesFromFolder));
+                    nameof(SelectFolder));
             }
         }
-
+        
         private async Task PrintPressAsync(object param = null)
         {
             try
@@ -365,6 +335,12 @@ namespace FunPress.ViewModels.Implementations
                     return;
                 }
 
+                var userSettings = _userSettingsService.GetUserSettings();
+                userSettings.FolderPath = SelectedFolder;
+                userSettings.PrinterName = SelectedPrinter.Name;
+                userSettings.PrinterActionType = SelectedPrinterAction.Type;
+                _userSettingsService.SaveSettings(userSettings);
+                
                 _logger.LogInformation("Invoke in {Method}. Selected Printer: {SelectedPrinter}", 
                     nameof(PrintPressAsync), SelectedPrinter.Name);
 
@@ -415,7 +391,7 @@ namespace FunPress.ViewModels.Implementations
                 _isActionAvailable = true;
 
                 _logger.LogInformation("Invoke in {Method}. Finish invoking", 
-                    nameof(GetImagesFromFolder));
+                    nameof(SelectFolder));
             }
         }
 
@@ -427,6 +403,16 @@ namespace FunPress.ViewModels.Implementations
         {
             switch (args.PropertyName)
             {
+                case nameof(SelectedFolder):
+                {
+                    _logger.LogInformation("Selected folder: {SelectedImage}", SelectedFolder);
+                    
+                    SetImages(SelectedFolder);
+
+                    StartTrackImagesInFolderJob(SelectedFolder);
+                    
+                    break;
+                }
                 case nameof(SelectedImage):
                 {
                     _logger.LogInformation("Selected image: {SelectedImage}", SelectedImage.ImagePath);
@@ -436,7 +422,7 @@ namespace FunPress.ViewModels.Implementations
                 case nameof(SelectedPrinter):
                 {
                     _logger.LogInformation("Selected printer: {SelectedPrinter}", SelectedPrinter.Name);
-
+                    
                     break;
                 }
                 case nameof(SelectedPrinterAction):
@@ -455,7 +441,7 @@ namespace FunPress.ViewModels.Implementations
 
                         PrinterButtonVisibility = Visibility.Visible;
                     }
-
+                    
                     break;
                 }
             }
@@ -465,6 +451,126 @@ namespace FunPress.ViewModels.Implementations
 
         #region Private methods
 
+        private void SetImages(string folderPath)
+        {
+            try
+            {
+                AvailableImages.Clear();
+                
+                if (string.IsNullOrWhiteSpace(folderPath))
+                {
+                    _logger.LogWarning("Invoke in {Method}. Folder path is empty", 
+                        nameof(SetImages));
+                    
+                    return;
+                }
+                
+                var images = GetImages(folderPath);
+
+                _logger.LogInformation("Invoke in {Method}. Images in folder: {Images}", 
+                    nameof(SetImages), _serializeService.SerializeObject(images));
+                
+                foreach (var imagePath in images.OrderBy(File.GetLastWriteTime))
+                {
+                    AvailableImages.Add(new FileImageInfo
+                    {
+                        ImageName = Path.GetFileName(imagePath),
+                        ImagePath = imagePath
+                    });
+                }
+
+                if (!AvailableImages.Any())
+                {
+                    return;
+                }
+
+                SelectedImage = AvailableImages.First();
+
+                _logger.LogInformation("Invoke in {Method}. Selected image: {Images}", 
+                    nameof(SetImages), _serializeService.SerializeObject(SelectedImage));
+            }
+            catch (UnauthorizedAccessException unauthorizedAccessException)
+            {
+                _logger.LogDebug(unauthorizedAccessException, "Invoke in {Method}",
+                    nameof(SetImages));
+            }
+        }
+
+        private void StartTrackImagesInFolderJob(string pathToFolder)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(pathToFolder) || Directory.Exists(pathToFolder))
+                {
+                    _logger.LogWarning("Invoke in {Method}. Job will not start because of invalid path to folder: {Path}", 
+                        nameof(StartTrackImagesInFolderJob), pathToFolder);
+                    
+                    return;
+                }
+                
+                if (_jobService.IsJobExist(TrackFilesJobName))
+                {
+                    _jobService.FinishJob(TrackFilesJobName);
+                }
+
+                _jobService.CreateJob(
+                    TrackFilesJobName, 
+                    TimeSpan.FromSeconds(2), 
+                    async cancellationToken => await CheckNewImages(pathToFolder, cancellationToken)
+                    );
+                
+                _jobService.StartJob(TrackFilesJobName, true);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Invoke in {Method}", nameof(StartTrackImagesInFolderJob));
+            }
+        }
+        
+        private void ApplyUserSettings(IEnumerable<PrinterName> printerNames, IEnumerable<PrinterAction> printerActions)
+        {
+            try
+            {
+                var useSettings = _userSettingsService.GetUserSettings();
+
+                if (useSettings == null)
+                {
+                    useSettings = new UserSettings
+                    {
+                        FolderPath = SelectedFolder,
+                        PrinterName = SelectedPrinter.Name,
+                        PrinterActionType = SelectedPrinterAction.Type
+                    };
+
+                    _userSettingsService.SaveSettings(useSettings);
+                }
+                else
+                {
+                    var selectedPrinter = printerNames.FirstOrDefault(x => x.Name == useSettings.PrinterName);
+                    var selectedPrinterAction = printerActions.FirstOrDefault(x => x.Type == useSettings.PrinterActionType);
+
+                    if (selectedPrinter?.Name != SelectedPrinter.Name)
+                    {
+                        SelectedPrinter = selectedPrinter;
+                    }
+
+                    if (selectedPrinterAction?.Type != SelectedPrinterAction.Type)
+                    {
+                        SelectedPrinterAction = selectedPrinterAction;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(useSettings.FolderPath) && useSettings.FolderPath != SelectedFolder)
+                    {
+                        SelectedFolder = useSettings.FolderPath;   
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Invoke in {Method}", nameof(ApplyUserSettings));
+            }
+        }
+        
         private async Task GenerateErrorNotificationAsync(string errorMessage)
         {
             var viewParameters = new CreateViewParameters
@@ -476,14 +582,14 @@ namespace FunPress.ViewModels.Implementations
             await _viewFactory.Get<IMessageDialogView>().ShowDialogViewAsync(viewParameters);
         }
 
-        private async Task CheckNewImages(CancellationToken cancellationToken)
+        private async Task CheckNewImages(string pathToFolder, CancellationToken cancellationToken)
         {
-            if (cancellationToken.IsCancellationRequested || string.IsNullOrWhiteSpace(_currentDirectory))
+            if (cancellationToken.IsCancellationRequested || string.IsNullOrWhiteSpace(pathToFolder))
             {
                 return;
             }
 
-            var imagesPath = GetImages(_currentDirectory).ToArray();
+            var imagesPath = GetImages(pathToFolder).ToArray();
 
             await _applicationService.DispatcherInvokeAsync(async () =>
             {

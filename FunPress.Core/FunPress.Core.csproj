@@ -128,8 +128,10 @@
     <Compile Include="Services\Implementations\JobService.cs" />
     <Compile Include="Services\Implementations\PrinterService.cs" />
     <Compile Include="Services\Implementations\SerializeService.cs" />
+    <Compile Include="Services\Implementations\UserSettingsService.cs" />
     <Compile Include="Services\IPrinterService.cs" />
     <Compile Include="Services\ISerializeService.cs" />
+    <Compile Include="Services\IUserSettingsService.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

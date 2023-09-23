@@ -31,7 +31,7 @@
 
                 <TextBlock Grid.Column="0"
                            FontWeight="Bold" FontSize="20"
-                           Text="{Binding Path=ApplicationTitle}" 
+                           Text="{Binding Path=ImagesFolderPath}" 
                            Margin="5,0,0,0" 
                            d:Text="Fun Press"/>
 

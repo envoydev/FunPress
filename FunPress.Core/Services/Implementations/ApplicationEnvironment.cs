@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using FunPress.Common.Constants;
 using FunPress.Common.Types.Enums;
 
 namespace FunPress.Core.Services.Implementations
@@ -20,31 +21,22 @@ namespace FunPress.Core.Services.Implementations
 
         public string GetApplicationBasePath()
         {
-            return AppDomain.CurrentDomain.BaseDirectory;
+            return BasePath();
         }
 
         public string GetTemplatesPath()
         {
-            var path = Path.Combine(GetApplicationBasePath(), "Templates");
-
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
-
-            return path;
+            return GetFolderPath(ApplicationConstants.TemplatesFolderName);
         }
 
         public string GetResultsPath()
         {
-            var path = Path.Combine(GetApplicationBasePath(), "Results");
-
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
-
-            return path;
+            return GetFolderPath(ApplicationConstants.ResultsFolderName);
+        }
+        
+        public string GetSettingsPath()
+        {
+            return GetFolderPath(ApplicationConstants.SettingsFolderName);
         }
 
         public ConfigurationType GetConfigurationType()
@@ -84,6 +76,23 @@ namespace FunPress.Core.Services.Implementations
             }
         }
 
+        private static string GetFolderPath(string folderName)
+        {
+            var path = Path.Combine(BasePath(), folderName);
+
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+
+            return path;
+        }
+        
+        private static string BasePath()
+        {
+            return AppDomain.CurrentDomain.BaseDirectory;
+        }
+        
         #endregion
     }
 }

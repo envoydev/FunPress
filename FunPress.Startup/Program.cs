@@ -25,8 +25,8 @@ namespace FunPress.Startup
                 var services = new ServiceCollection();
 
                 CoreDependencyInjectionContainer.Register(services);
+                StartupDependencyInjectionContainer.Register(services);
                 ViewModelsDependencyInjectionContainer.Register(services);
-                ViewsDependencyInjectionContainer.Register(services);
 
                 var serviceProvider = services.BuildServiceProvider();
 
