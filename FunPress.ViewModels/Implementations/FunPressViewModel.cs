@@ -559,7 +559,7 @@ namespace FunPress.ViewModels.Implementations
                         SelectedPrinterAction = selectedPrinterAction;
                     }
 
-                    if (string.IsNullOrWhiteSpace(useSettings.FolderPath) && useSettings.FolderPath != SelectedFolder)
+                    if (!string.IsNullOrWhiteSpace(useSettings.FolderPath) && useSettings.FolderPath != SelectedFolder)
                     {
                         SelectedFolder = useSettings.FolderPath;   
                     }
