@@ -25,6 +25,7 @@
 
             <Grid Grid.Row="0" MouseDown="OnMouseDown" VerticalAlignment="Center" Cursor="Hand">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
@@ -35,7 +36,13 @@
                            Margin="5,0,0,0" 
                            d:Text="Fun Press"/>
 
-                <Button Grid.Column="1" 
+                <TextBlock Grid.Column="1"
+                           Text="{Binding Path=ApplicationVersion}" 
+                           FontSize="20"
+                           Margin="10,0,0,0" 
+                           d:Text="1.0.0"/>
+
+                <Button Grid.Column="2" 
                         VerticalContentAlignment="Center"
                         HorizontalAlignment="Center"
                         Content="X"
@@ -120,10 +127,11 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition />
                                     <RowDefinition Height="70" />
+                                    <RowDefinition Height="70" />
                                 </Grid.RowDefinitions>
 
                                 <TextBlock Grid.Row="0"
-                                           Text="{Binding Path=PrintResult}"
+                                           Text="{Binding Path=TextResult}"
                                            VerticalAlignment="Center" HorizontalAlignment="Center"
                                            TextWrapping="Wrap"
                                            Foreground="Green"
@@ -135,6 +143,11 @@
                                         Command="{Binding Path=PrintPressCommand}"
                                         Width="100"
                                         d:Visibility="Visible"/>
+
+                                <Button Grid.Row="2" 
+                                        Content="Save settings" 
+                                        Command="{Binding Path=SaveSettingsCommand}"
+                                        Width="120"/>
 
                             </Grid>
 
