@@ -1,7 +1,10 @@
-﻿namespace FunPress.Core.Services
+﻿using System.Threading;
+using System.Threading.Tasks;
+
+namespace FunPress.Core.Services
 {
     public interface IImageService
     {
-        bool GenerateImageByTemplateOne(string imagePath, string generatedNewImagePath);
+        Task<bool> GenerateImageByTemplateOneAsync(string imagePath, string generatedNewImagePath, CancellationToken cancellationToken);
     }
 }

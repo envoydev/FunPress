@@ -19,8 +19,10 @@ namespace FunPress.Startup
         private readonly IApplicationEnvironment _applicationEnvironment;
         private readonly IApplicationService _applicationService;
         private readonly IJobService _jobService;
+        private readonly ILanguageService _languageService;
         private readonly IViewFactory _viewFactory;
 
+        // ReSharper disable once UnusedAutoPropertyAccessor.Global
         public static IServiceProvider ServiceProvider { get; private set; }
 
         public App(
@@ -29,20 +31,24 @@ namespace FunPress.Startup
             IApplicationEnvironment applicationEnvironment,
             IApplicationService applicationService,
             IJobService jobService,
+            ILanguageService languageService,
             IViewFactory viewFactory
             )
         {
             _logger = logger;
             _applicationEnvironment = applicationEnvironment;
             _applicationService = applicationService;
-            _viewFactory = viewFactory;
+            _languageService = languageService;
             _jobService = jobService;
+            _viewFactory = viewFactory;
 
             ServiceProvider = serviceProvider;
         }
 
         protected override void OnStartup(StartupEventArgs args)
         {
+            _languageService.SetDefaultLanguage();
+            
             SetupUnhandledExceptionHandling();
 
             base.OnStartup(args);

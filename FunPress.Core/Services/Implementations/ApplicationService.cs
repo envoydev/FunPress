@@ -34,26 +34,6 @@ namespace FunPress.Core.Services.Implementations
             }, DispatcherPriority.Send);
         }
 
-        public Window GetWindowByControl(FrameworkElement frameworkElement)
-        {
-            return Application.Current.Dispatcher.Invoke(() =>
-            {
-                try
-                {
-                    _logger.LogInformation("Invoke in {Method}", nameof(GetWindowByControl));
-
-                    return Window.GetWindow(frameworkElement);
-                }
-                catch (Exception exception)
-                {
-                    _logger.LogError(exception, "Invoke in {Method}", nameof(GetWindowByControl));
-
-                    return null;
-                }
-
-            }, DispatcherPriority.Send);
-        }
-
         public Window[] GetAllWindows()
         {
             return Application.Current.Dispatcher.Invoke(() =>

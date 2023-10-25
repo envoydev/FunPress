@@ -16,6 +16,7 @@ namespace FunPress.Core.Containers
 
         private CancellationTokenSource _jobCancellationTokenSource;
 
+        // ReSharper disable once MemberCanBePrivate.Global
         public string Key { get; }
 
         public JobContainer(string key, TimeSpan interval, Func<CancellationToken, Task> funcToRun, 
@@ -36,18 +37,21 @@ namespace FunPress.Core.Containers
             {
                 try
                 {
+                    if (_jobCancellationTokenSource.IsCancellationRequested)
+                    {
+                        _logger.LogTrace("Invoke in {Method}. Cancel job is requested", 
+                            nameof(Start));
+                        
+                        return;
+                    }
+                    
                     if (!isStartImmediately)
                     {
                         await _delayService.DelayAsync(_interval, _jobCancellationTokenSource.Token);
                     }
 
-                    while (true)
+                    while (_jobCancellationTokenSource.IsCancellationRequested)
                     {
-                        if (_jobCancellationTokenSource.IsCancellationRequested)
-                        {
-                            break;
-                        }
-                    
                         await _funcToRun(_jobCancellationTokenSource.Token);
                 
                         await _delayService.DelayAsync(_interval, _jobCancellationTokenSource.Token);

@@ -12,7 +12,7 @@ namespace FunPress.Core.Logger
 {
     internal static class SerilogLoggerFactoryExtensions
     {
-        public static ILoggingBuilder AddApplicationSerilog(this ILoggingBuilder loggingBuilder)
+        public static void AddApplicationSerilog(this ILoggingBuilder loggingBuilder)
         {
             var loggerFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs", "log.txt");
 
@@ -41,8 +41,6 @@ namespace FunPress.Core.Logger
                 .CreateLogger();
 
             loggingBuilder.AddSerilog(loggerConfiguration);
-
-            return loggingBuilder;
         }
 
         private static AnsiConsoleTheme ApplicationTheme { get; } = new AnsiConsoleTheme(new Dictionary<ConsoleThemeStyle, string>

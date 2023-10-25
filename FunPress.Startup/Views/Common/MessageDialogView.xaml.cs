@@ -17,6 +17,7 @@ namespace FunPress.Startup.Views.Common
         private readonly ILogger<MessageDialogView> _logger;
         private readonly IMessageDialogViewModel _viewModel;
 
+        // ReSharper disable once UnusedAutoPropertyAccessor.Global
         public bool IsClosed { get; private set; } = true;
         public object DialogViewResult { get; private set; }
 

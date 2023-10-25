@@ -397,7 +397,7 @@ namespace FunPress.ViewModels.Implementations
                 var newImageFileName = Path.Combine(_applicationEnvironment.GetResultsPath(), 
                     $"{_dateTimeService.GetDateTimeNow():dd_MM_yyyy__HH_mm_ss_fff}.jpg");
 
-                var imageGenerationResult = _imageService.GenerateImageByTemplateOne(SelectedImage.ImagePath, newImageFileName);
+                var imageGenerationResult = await _imageService.GenerateImageByTemplateOneAsync(SelectedImage.ImagePath, newImageFileName, CancellationToken.None);
                 if (!imageGenerationResult)
                 {
                     await GenerateErrorNotificationAsync("Cannot generate the image. Please check logs.");

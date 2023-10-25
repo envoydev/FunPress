@@ -18,6 +18,7 @@ namespace FunPress.Core
             services.AddTransient<IPrinterService, PrinterService>();
             services.AddTransient<IImageService, ImageService>();
             services.AddTransient<IDelayService, DelayService>();
+            services.AddSingleton<ILanguageService, LanguageService>();
             
             services.AddLogging(loggingFactory =>
             {

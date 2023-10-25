@@ -101,6 +101,7 @@ namespace FunPress.Core.Services.Implementations
             }
         }
 
+        // ReSharper disable once UnusedMember.Global
         public void CancelCurrentPrinting()
         {
             _imagePrintingCompletionSource?.SetCanceled();

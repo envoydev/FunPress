@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Threading;
 using FunPress.Common.Constants;
 using FunPress.Core;
-using FunPress.Startup.Factory;
 using FunPress.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 
