@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Printing;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
@@ -13,11 +14,14 @@ namespace FunPress.Core.Services.Implementations
         private readonly ILogger<PrinterService> _logger;
 
         private TaskCompletionSource<bool> _imagePrintingCompletionSource;
+        private CancellationTokenSource _cancellationTokenSource;
         private bool _isPrintingProcessStarted;
 
         public PrinterService(ILogger<PrinterService> logger)
         {
             _logger = logger;
+
+            _cancellationTokenSource = new CancellationTokenSource();
         }
 
         public IEnumerable<string> GetPrinterNames()
@@ -41,6 +45,13 @@ namespace FunPress.Core.Services.Implementations
                 return false;
             }
 
+            if (_cancellationTokenSource.IsCancellationRequested)
+            {
+                _logger.LogInformation("Invoke in {Method}. Operation cancelled", nameof(PrintImage));
+
+                return false;
+            }
+
             _isPrintingProcessStarted = true;
             _imagePrintingCompletionSource = new TaskCompletionSource<bool>();
 
@@ -61,7 +72,8 @@ namespace FunPress.Core.Services.Implementations
                 {
                     using (var image = Image.FromFile(imagePath))
                     {
-                        args.Graphics.DrawImage(image, 0, 0, args.PageSettings.PrintableArea.Width, args.PageSettings.PrintableArea.Height);
+                        args.Graphics.DrawImage(image, 0, 0, args.PageSettings.PrintableArea.Width,
+                            args.PageSettings.PrintableArea.Height);
                     }
                 };
 
@@ -82,11 +94,17 @@ namespace FunPress.Core.Services.Implementations
 
                 printDocument.Print();
 
-                _imagePrintingCompletionSource.Task.Wait();
+                _imagePrintingCompletionSource.Task.Wait(_cancellationTokenSource.Token);
 
                 var result = _imagePrintingCompletionSource.Task.Result;
 
                 return result;
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("Invoke in {Method}. Operation cancelled", nameof(PrintImage));
+
+                return false;
             }
             catch (Exception exception)
             {
@@ -101,10 +119,19 @@ namespace FunPress.Core.Services.Implementations
             }
         }
 
-        // ReSharper disable once UnusedMember.Global
         public void CancelCurrentPrinting()
         {
-            _imagePrintingCompletionSource?.SetCanceled();
+            try
+            {
+                _imagePrintingCompletionSource?.SetCanceled();
+                _cancellationTokenSource.Cancel();
+
+                _cancellationTokenSource = new CancellationTokenSource();
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Invoke in {Method}", nameof(CancelCurrentPrinting));
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using FunPress.Core.Services;
 using FunPress.ViewModels.Contracts;
 using FunPress.Views.Mvvm.Parameters;
 using FunPress.Views.Views;
@@ -12,14 +13,17 @@ namespace FunPress.Startup.Views
     {
         private readonly ILogger<FunPressView> _logger;
         private readonly IFunPressViewModel _viewModel;
+        private readonly IApplicationService _applicationService;
 
         public FunPressView(
             ILogger<FunPressView> logger, 
-            IFunPressViewModel viewModel
+            IFunPressViewModel viewModel, 
+            IApplicationService applicationService
             )
         {
             _logger = logger;
             _viewModel = viewModel;
+            _applicationService = applicationService;
         }
 
         public async Task ShowViewAsync(CreateViewParameters param = null)
@@ -27,6 +31,8 @@ namespace FunPress.Startup.Views
             _viewModel.AssignView(this);
             await _viewModel.InitializeDataAsync();
             DataContext = _viewModel;
+
+            _applicationService.SetMainWindow(this);
 
             InitializeComponent();
 

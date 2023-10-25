@@ -36,6 +36,8 @@ namespace FunPress.ViewModels.Implementations
         private readonly IDateTimeService _dateTimeService;
         private readonly ISerializeService _serializeService;
         private readonly IJobService _jobService;
+        private readonly IDelayService _delayService;
+        private readonly IFileService _fileService;
         private readonly IViewFactory _viewFactory;
 
         private const string TrackFilesJobName = "TrackNewFiles";
@@ -45,6 +47,7 @@ namespace FunPress.ViewModels.Implementations
         private bool _isNeedPrintingAfterImageIsAppear;
         private readonly string[] _validExtensions = { ".jpg", ".png", ".jpeg" };
         private DispatcherTimer _resultTextDispatcherTimer;
+        private CancellationTokenSource _cancelPrintingCancellationTokenSource;
 
         #region Observable properties
 
@@ -125,6 +128,17 @@ namespace FunPress.ViewModels.Implementations
             }
         }
 
+        private Visibility _cancelPrinterButtonVisibility;
+        public Visibility CancelPrinterButtonVisibility
+        {
+            get => _cancelPrinterButtonVisibility;
+            set
+            {
+                _cancelPrinterButtonVisibility = value;
+                NotifyPropertyChanged();
+            }
+        }
+
         private string _textResult;
         public string TextResult
         {
@@ -176,6 +190,7 @@ namespace FunPress.ViewModels.Implementations
         public ICommand GetImagesFromFolderCommand { get; private set; }
         public ICommand ApplicationShutdownCommandAsync { get; private set; }
         public ICommand PrintPressCommand { get; private set; }
+        public ICommand CancelPrintPressCommand { get; private set; }
         public ICommand SaveSettingsCommand { get; private set; }
 
         #endregion
@@ -190,6 +205,8 @@ namespace FunPress.ViewModels.Implementations
             IDateTimeService dateTimeService,
             ISerializeService serializeService,
             IJobService jobService,
+            IDelayService delayService, 
+            IFileService fileService,
             IViewFactory viewFactory
             )
         {
@@ -202,6 +219,8 @@ namespace FunPress.ViewModels.Implementations
             _dateTimeService = dateTimeService;
             _serializeService = serializeService;
             _jobService = jobService;
+            _delayService = delayService;
+            _fileService = fileService;
             _viewFactory = viewFactory;
         }
 
@@ -219,6 +238,7 @@ namespace FunPress.ViewModels.Implementations
                 Interval = TimeSpan.FromSeconds(2)
             };
             _resultTextDispatcherTimer.Tick += ResultTextDispatcherTimer_Tick;
+            _cancelPrintingCancellationTokenSource = new CancellationTokenSource();
 
             var printerNames = GetPrinterNames().ToArray();
             var printerActions = GetPrinterActions().ToArray();
@@ -226,6 +246,7 @@ namespace FunPress.ViewModels.Implementations
             ApplicationVersion = _applicationEnvironment.GetApplicationVersion().ToString(3);
             ApplicationTitle = ApplicationConstants.ApplicationName;
             PrinterButtonVisibility = Visibility.Visible;
+            CancelPrinterButtonVisibility = Visibility.Hidden;
             SelectedFolder = string.Empty;
             SelectedPrinter = printerNames.First();
             SelectedPrinterAction = printerActions.First();
@@ -238,6 +259,7 @@ namespace FunPress.ViewModels.Implementations
             PrintPressCommand = new RelayAsyncCommand(PrintPressAsync, CanExecuteCommand);
             GetImagesFromFolderCommand = new RelayCommand(SelectFolder, CanExecuteCommand);
             SaveSettingsCommand = new RelayCommand(SaveSettings, CanExecuteCommand);
+            CancelPrintPressCommand = new RelayCommand(CancelPrintPress);
             
             PropertyChanged += FunPressViewModel_PropertyChanged;
             
@@ -376,6 +398,8 @@ namespace FunPress.ViewModels.Implementations
             {
                 _isActionAvailable = false;
 
+                CancelPrinterButtonVisibility = Visibility.Visible;
+
                 _logger.LogInformation("Invoke in {Method}. Start invoking", 
                     nameof(PrintPressAsync));
 
@@ -387,17 +411,28 @@ namespace FunPress.ViewModels.Implementations
 
                     return;
                 }
-                
+
                 _logger.LogInformation("Invoke in {Method}. Selected Printer: {SelectedPrinter}", 
                     nameof(PrintPressAsync), SelectedPrinter.Name);
 
                 _logger.LogInformation("Invoke in {Method}. Selected image: {SelectedImage}", 
                     nameof(PrintPressAsync), SelectedImage.ImagePath);
 
+                if (!_fileService.IsFileAvailable(SelectedImage.ImagePath))
+                {
+                    _logger.LogInformation("Invoke in {Method}. Image is not fully available", nameof(PrintPressAsync));
+
+                    await _delayService.WaitForConditionAsync(
+                        () => !_fileService.IsFileAvailable(SelectedImage.ImagePath),
+                        TimeSpan.FromSeconds(1),
+                        _cancelPrintingCancellationTokenSource.Token);
+                }
+
                 var newImageFileName = Path.Combine(_applicationEnvironment.GetResultsPath(), 
                     $"{_dateTimeService.GetDateTimeNow():dd_MM_yyyy__HH_mm_ss_fff}.jpg");
 
-                var imageGenerationResult = await _imageService.GenerateImageByTemplateOneAsync(SelectedImage.ImagePath, newImageFileName, CancellationToken.None);
+                var imageGenerationResult = await _imageService.GenerateImageByTemplateOneAsync(SelectedImage.ImagePath, newImageFileName, 
+                    _cancelPrintingCancellationTokenSource.Token);
                 if (!imageGenerationResult)
                 {
                     await GenerateErrorNotificationAsync("Cannot generate the image. Please check logs.");
@@ -411,6 +446,14 @@ namespace FunPress.ViewModels.Implementations
                         nameof(PrintPressAsync), SelectedPrinter?.Type);
 
                     TextResult = "Press is generated, but won't be printed because printer is not selected.";
+
+                    return;
+                }
+
+                if (_cancelPrintingCancellationTokenSource.IsCancellationRequested)
+                {
+                    _logger.LogInformation("Invoke in {Method}. Cancellation is requested", 
+                        nameof(PrintPressAsync));
 
                     return;
                 }
@@ -435,10 +478,37 @@ namespace FunPress.ViewModels.Implementations
             }
             finally
             {
+                CancelPrinterButtonVisibility = Visibility.Hidden;
+
                 _isActionAvailable = true;
 
                 _logger.LogInformation("Invoke in {Method}. Finish invoking", 
-                    nameof(SelectFolder));
+                    nameof(PrintPressAsync));
+            }
+        }
+
+        private void CancelPrintPress(object param = null)
+        {
+            try
+            {
+                _logger.LogInformation("Invoke in {Method}. Start invoking",
+                    nameof(CancelPrintPress));
+
+                _cancelPrintingCancellationTokenSource.Cancel();
+                _cancelPrintingCancellationTokenSource = new CancellationTokenSource();
+
+                _printerService.CancelCurrentPrinting();
+
+                TextResult = "Printing cancelled";
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Invoke in {Method}", nameof(CancelPrintPress));
+            }
+            finally
+            {
+                _logger.LogInformation("Invoke in {Method}. Finish invoking", 
+                    nameof(CancelPrintPress));
             }
         }
 
@@ -588,61 +658,6 @@ namespace FunPress.ViewModels.Implementations
             }
         }
         
-        private void ApplyUserSettings(IEnumerable<PrinterName> printerNames, IEnumerable<PrinterAction> printerActions)
-        {
-            try
-            {
-                var useSettings = _userSettingsService.GetUserSettings();
-
-                if (useSettings == null)
-                {
-                    useSettings = new UserSettings
-                    {
-                        FolderPath = SelectedFolder,
-                        PrinterName = SelectedPrinter.Name,
-                        PrinterActionType = SelectedPrinterAction.Type
-                    };
-
-                    _userSettingsService.SaveSettings(useSettings);
-                }
-                else
-                {
-                    var selectedPrinter = printerNames.FirstOrDefault(x => x.Name == useSettings.PrinterName);
-                    var selectedPrinterAction = printerActions.FirstOrDefault(x => x.Type == useSettings.PrinterActionType);
-
-                    if (selectedPrinter?.Name != SelectedPrinter.Name)
-                    {
-                        SelectedPrinter = selectedPrinter;
-                    }
-
-                    if (selectedPrinterAction?.Type != SelectedPrinterAction.Type)
-                    {
-                        SelectedPrinterAction = selectedPrinterAction;
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(useSettings.FolderPath) && useSettings.FolderPath != SelectedFolder)
-                    {
-                        SelectedFolder = useSettings.FolderPath;   
-                    }
-                }
-            }
-            catch (Exception exception)
-            {
-                _logger.LogError(exception, "Invoke in {Method}", nameof(ApplyUserSettings));
-            }
-        }
-        
-        private async Task GenerateErrorNotificationAsync(string errorMessage)
-        {
-            var viewParameters = new CreateViewParameters
-            {
-                Parent = _viewModelView,
-                AdditionalParameters = new MessageDialogParam(errorMessage, new[] { MessageDialogButton.Ok })
-            };
-
-            await _viewFactory.Get<IMessageDialogView>().ShowDialogViewAsync(viewParameters);
-        }
-
         private async Task CheckNewImages(string pathToFolder, CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested || string.IsNullOrWhiteSpace(pathToFolder))
@@ -697,6 +712,50 @@ namespace FunPress.ViewModels.Implementations
             }, DispatcherPriority.Send, cancellationToken);
         }
 
+        private void ApplyUserSettings(IEnumerable<PrinterName> printerNames, IEnumerable<PrinterAction> printerActions)
+        {
+            try
+            {
+                var useSettings = _userSettingsService.GetUserSettings();
+
+                if (useSettings == null)
+                {
+                    useSettings = new UserSettings
+                    {
+                        FolderPath = SelectedFolder,
+                        PrinterName = SelectedPrinter.Name,
+                        PrinterActionType = SelectedPrinterAction.Type
+                    };
+
+                    _userSettingsService.SaveSettings(useSettings);
+                }
+                else
+                {
+                    var selectedPrinter = printerNames.FirstOrDefault(x => x.Name == useSettings.PrinterName);
+                    var selectedPrinterAction = printerActions.FirstOrDefault(x => x.Type == useSettings.PrinterActionType);
+
+                    if (selectedPrinter?.Name != SelectedPrinter.Name)
+                    {
+                        SelectedPrinter = selectedPrinter;
+                    }
+
+                    if (selectedPrinterAction?.Type != SelectedPrinterAction.Type)
+                    {
+                        SelectedPrinterAction = selectedPrinterAction;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(useSettings.FolderPath) && useSettings.FolderPath != SelectedFolder)
+                    {
+                        SelectedFolder = useSettings.FolderPath;   
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Invoke in {Method}", nameof(ApplyUserSettings));
+            }
+        }
+
         private IEnumerable<string> GetImages(string directoryToCheck)
         {
             return Directory.GetFiles(directoryToCheck, "*.*", SearchOption.AllDirectories)
@@ -741,6 +800,17 @@ namespace FunPress.ViewModels.Implementations
                     Type = PrinterActionType.Automatic
                 }
             };
+        }
+
+        private async Task GenerateErrorNotificationAsync(string errorMessage)
+        {
+            var viewParameters = new CreateViewParameters
+            {
+                Parent = _viewModelView,
+                AdditionalParameters = new MessageDialogParam(errorMessage, new[] { MessageDialogButton.Ok })
+            };
+
+            await _viewFactory.Get<IMessageDialogView>().ShowDialogViewAsync(viewParameters);
         }
 
         #endregion

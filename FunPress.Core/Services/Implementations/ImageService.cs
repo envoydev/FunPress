@@ -13,34 +13,39 @@ namespace FunPress.Core.Services.Implementations
     {
         private readonly ILogger<ImageService> _logger;
         private readonly IApplicationEnvironment _applicationEnvironment;
-        private readonly IDelayService _delayService;
+        private readonly IFileService _fileService;
 
         public ImageService(
             ILogger<ImageService> logger, 
-            IApplicationEnvironment applicationEnvironment, 
-            IDelayService delayService
+            IApplicationEnvironment applicationEnvironment,
+            IFileService fileService
             )
         {
             _logger = logger;
             _applicationEnvironment = applicationEnvironment;
-            _delayService = delayService;
+            _fileService = fileService;
         }
 
-        public async Task<bool> GenerateImageByTemplateOneAsync(string imagePath, string generatedNewImagePath, CancellationToken cancellationToken)
+        public Task<bool> GenerateImageByTemplateOneAsync(string imagePath, string generatedNewImagePath, CancellationToken cancellationToken)
         {
             try
             {
-                await _delayService.WaitForConditionAsync(() => IsFileAvailable(imagePath), 
-                    TimeSpan.FromMilliseconds(1000), 
-                    cancellationToken);
-
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    _logger.LogDebug("Invoke in {Method}. Cancellation is requested", nameof(GenerateImageByTemplateOneAsync));
+                    _logger.LogInformation("Invoke in {Method}. Cancellation is requested", 
+                        nameof(GenerateImageByTemplateOneAsync));
                     
-                    return false;
+                    return Task.FromResult(false);
                 }
-                
+
+                if (_fileService.IsFileAvailable(imagePath))
+                {
+                    _logger.LogInformation("Invoke in {Method}. Cancellation is requested", 
+                        nameof(GenerateImageByTemplateOneAsync));
+                    
+                    return Task.FromResult(false);
+                }
+
                 var templatePath = Path.Combine(_applicationEnvironment.GetTemplatesPath(), "template_1.jpg");
 
                 var backgroundImage = new Bitmap(templatePath);
@@ -111,41 +116,14 @@ namespace FunPress.Core.Services.Implementations
                 overlayImage.Dispose();
                 combinedImage.Dispose();
 
-                return true;
-            }
-            catch (OperationCanceledException)
-            {
-                _logger.LogDebug("Invoke in {Method}. Operation cancelled", nameof(GenerateImageByTemplateOneAsync));
-
-                return false;
+                return Task.FromResult(true);
             }
             catch (Exception exception)
             {
                 _logger.LogError(exception, "Invoke in {Method}", nameof(GenerateImageByTemplateOneAsync));
 
-                return false;
+                return Task.FromResult(false);
             }
         }
-
-        #region Private methods
-
-        private static bool IsFileAvailable(string filePath)
-        {
-            try
-            {
-                using (var _ = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
-                {
-                    // If we can open the file with exclusive access, it's available.
-                    return true;
-                }
-            }
-            catch (IOException)
-            {
-                // If an IOException is thrown, the file is likely locked by another process.
-                return false;
-            }
-        }
-
-        #endregion
     }
 }

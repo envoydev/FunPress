@@ -5,7 +5,7 @@ namespace FunPress.Core.Services
     public interface IPrinterService
     {
         IEnumerable<string> GetPrinterNames();
-
         bool PrintImage(string printerName, string imagePath);
+        void CancelCurrentPrinting();
     }
 }
