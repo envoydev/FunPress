@@ -426,6 +426,11 @@ namespace FunPress.ViewModels.Implementations
                         () => !_fileService.IsFileAvailable(SelectedImage.ImagePath),
                         TimeSpan.FromSeconds(1),
                         _cancelPrintingCancellationTokenSource.Token);
+
+                    if (_cancelPrintingCancellationTokenSource.IsCancellationRequested)
+                    {
+                        return;
+                    }
                 }
 
                 var newImageFileName = Path.Combine(_applicationEnvironment.GetResultsPath(), 
@@ -433,6 +438,14 @@ namespace FunPress.ViewModels.Implementations
 
                 var imageGenerationResult = await _imageService.GenerateImageByTemplateOneAsync(SelectedImage.ImagePath, newImageFileName, 
                     _cancelPrintingCancellationTokenSource.Token);
+
+                if (_cancelPrintingCancellationTokenSource.IsCancellationRequested)
+                {
+                    _logger.LogDebug("Invoke in {Method}. Cancellation token ", nameof(PrintPressAsync));
+
+                    return;
+                }
+
                 if (!imageGenerationResult)
                 {
                     await GenerateErrorNotificationAsync("Cannot generate the image. Please check logs.");

@@ -38,7 +38,7 @@ namespace FunPress.Core.Services.Implementations
                     return Task.FromResult(false);
                 }
 
-                if (_fileService.IsFileAvailable(imagePath))
+                if (!_fileService.IsFileAvailable(imagePath))
                 {
                     _logger.LogInformation("Invoke in {Method}. Cancellation is requested", 
                         nameof(GenerateImageByTemplateOneAsync));
