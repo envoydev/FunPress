@@ -644,7 +644,7 @@ namespace FunPress.ViewModels.Implementations
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(pathToFolder) || Directory.Exists(pathToFolder))
+                if (string.IsNullOrWhiteSpace(pathToFolder) || !Directory.Exists(pathToFolder))
                 {
                     _logger.LogWarning("Invoke in {Method}. Job will not start because of invalid path to folder: {Path}", 
                         nameof(StartTrackImagesInFolderJob), pathToFolder);

@@ -50,7 +50,7 @@ namespace FunPress.Core.Containers
                         await _delayService.DelayAsync(_interval, _jobCancellationTokenSource.Token);
                     }
 
-                    while (_jobCancellationTokenSource.IsCancellationRequested)
+                    while (!_jobCancellationTokenSource.IsCancellationRequested)
                     {
                         await _funcToRun(_jobCancellationTokenSource.Token);
                 
