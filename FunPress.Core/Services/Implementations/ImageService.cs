@@ -5,6 +5,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Media.Imaging;
 using Microsoft.Extensions.Logging;
 
 namespace FunPress.Core.Services.Implementations
@@ -40,7 +41,7 @@ namespace FunPress.Core.Services.Implementations
 
                 if (!_fileService.IsFileAvailable(imagePath))
                 {
-                    _logger.LogInformation("Invoke in {Method}. Cancellation is requested", 
+                    _logger.LogInformation("Invoke in {Method}. File is not available", 
                         nameof(GenerateImageByTemplateOneAsync));
                     
                     return Task.FromResult(false);
@@ -123,6 +124,39 @@ namespace FunPress.Core.Services.Implementations
                 _logger.LogError(exception, "Invoke in {Method}", nameof(GenerateImageByTemplateOneAsync));
 
                 return Task.FromResult(false);
+            }
+        }
+
+        public BitmapImage GetBitmapImageByPath(string imagePath, bool threadSafe)
+        {
+            try
+            {
+                if (!_fileService.IsFileAvailable(imagePath))
+                {
+                    _logger.LogInformation("Invoke in {Method}. File is not available", 
+                        nameof(GetBitmapImageByPath));
+                    
+                    return null;
+                }
+                
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.UriSource = new Uri(imagePath);
+                bitmap.EndInit();
+
+                if (threadSafe)
+                {
+                    bitmap.Freeze();   
+                }
+
+                return bitmap;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Invoke in {Method}", nameof(GetBitmapImageByPath));
+
+                return null;
             }
         }
     }

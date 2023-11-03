@@ -84,7 +84,7 @@
                     </Grid.RowDefinitions>
 
                     <Border Grid.Row="0" BorderThickness="1,1,0,1" BorderBrush="Black" Padding="10">
-                        <Image Source="{Binding Path=SelectedImage.ImagePath}" />
+                        <Image Source="{Binding Path=SelectedBitmapImage}" />
                     </Border>
 
                     <Border Grid.Row="1" BorderThickness="1,0,0,0" BorderBrush="Black">

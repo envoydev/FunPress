@@ -20,6 +20,7 @@ namespace FunPress.Core
             services.AddTransient<IDelayService, DelayService>();
             services.AddSingleton<ILanguageService, LanguageService>();
             services.AddSingleton<IFileService, FileService>();
+            services.AddSingleton<IFolderService, FolderService>();
             
             services.AddLogging(loggingFactory =>
             {

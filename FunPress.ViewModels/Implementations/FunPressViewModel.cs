@@ -17,6 +17,7 @@ using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Forms;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using FunPress.Common.Constants;
 using FunPress.Common.Types.Enums;
@@ -38,6 +39,7 @@ namespace FunPress.ViewModels.Implementations
         private readonly IJobService _jobService;
         private readonly IDelayService _delayService;
         private readonly IFileService _fileService;
+        private readonly IFolderService _folderService;
         private readonly IViewFactory _viewFactory;
 
         private const string TrackFilesJobName = "TrackNewFiles";
@@ -113,6 +115,17 @@ namespace FunPress.ViewModels.Implementations
             set
             {
                 _selectedImage = value;
+                NotifyPropertyChanged();
+            }
+        }
+        
+        private BitmapImage _selectedBitmapImage;
+        public BitmapImage SelectedBitmapImage
+        {
+            get => _selectedBitmapImage;
+            private set
+            {
+                _selectedBitmapImage = value;
                 NotifyPropertyChanged();
             }
         }
@@ -207,6 +220,7 @@ namespace FunPress.ViewModels.Implementations
             IJobService jobService,
             IDelayService delayService, 
             IFileService fileService,
+            IFolderService folderService,
             IViewFactory viewFactory
             )
         {
@@ -221,6 +235,7 @@ namespace FunPress.ViewModels.Implementations
             _jobService = jobService;
             _delayService = delayService;
             _fileService = fileService;
+            _folderService = folderService;
             _viewFactory = viewFactory;
         }
 
@@ -559,7 +574,9 @@ namespace FunPress.ViewModels.Implementations
                 }
                 case nameof(SelectedImage):
                 {
-                    _logger.LogInformation("Selected image: {SelectedImage}", SelectedImage.ImagePath);
+                    _logger.LogInformation("Selected image: {SelectedImage}", SelectedImage?.ImagePath);
+
+                    ShowSelectedImage(SelectedImage?.ImagePath);
                     
                     break;
                 }
@@ -713,18 +730,38 @@ namespace FunPress.ViewModels.Implementations
                 }
                 else if (imagesPath.Length < AvailableImages.Count)
                 {
-                    foreach (var imagePath in AvailableImages.Where(x => imagesPath.All(path => path != x.ImagePath)))
+                    var imagesToDelete = AvailableImages.Where(x => imagesPath.All(path => path != x.ImagePath)).ToArray();
+                    
+                    foreach (var imageInfo in imagesToDelete)
                     {
-                        AvailableImages.Remove(imagePath);
+                        AvailableImages.Remove(imageInfo);
 
                         _logger.LogInformation("Invoke in {Method}. Image is deleted. Image path: {ImagePath}", 
-                            nameof(CheckNewImages), imagePath.ImagePath);
+                            nameof(CheckNewImages), imageInfo.ImagePath);
                     }
                 }
 
             }, DispatcherPriority.Send, cancellationToken);
         }
 
+        private void ShowSelectedImage(string imagePath)
+        {
+            try
+            {
+                SelectedBitmapImage = null;
+                
+                var bitmapImage = _imageService.GetBitmapImageByPath(imagePath, true);
+                if (bitmapImage != null)
+                {
+                    SelectedBitmapImage = bitmapImage;   
+                }
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Invoke in {Method}", nameof(ShowSelectedImage));
+            }
+        }
+        
         private void ApplyUserSettings(IEnumerable<PrinterName> printerNames, IEnumerable<PrinterAction> printerActions)
         {
             try
@@ -757,7 +794,7 @@ namespace FunPress.ViewModels.Implementations
                         SelectedPrinterAction = selectedPrinterAction;
                     }
 
-                    if (!string.IsNullOrWhiteSpace(useSettings.FolderPath) && useSettings.FolderPath != SelectedFolder)
+                    if (_folderService.IsFolderExist(useSettings.FolderPath) && useSettings.FolderPath != SelectedFolder)
                     {
                         SelectedFolder = useSettings.FolderPath;   
                     }
@@ -825,7 +862,7 @@ namespace FunPress.ViewModels.Implementations
 
             await _viewFactory.Get<IMessageDialogView>().ShowDialogViewAsync(viewParameters);
         }
-
+        
         #endregion
     }
 }

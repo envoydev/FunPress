@@ -118,6 +118,7 @@
     <Compile Include="Services\IApplicationService.cs" />
     <Compile Include="Services\IDateTimeService.cs" />
     <Compile Include="Services\IFileService.cs" />
+    <Compile Include="Services\IFolderService.cs" />
     <Compile Include="Services\IImageService.cs" />
     <Compile Include="Services\IJobService.cs" />
     <Compile Include="Services\ILanguageService.cs" />
@@ -127,6 +128,7 @@
     <Compile Include="Services\IDelayService.cs" />
     <Compile Include="Services\Implementations\DelayService.cs" />
     <Compile Include="Services\Implementations\FileService.cs" />
+    <Compile Include="Services\Implementations\FolderService.cs" />
     <Compile Include="Services\Implementations\ImageService.cs" />
     <Compile Include="Services\Implementations\JobService.cs" />
     <Compile Include="Services\Implementations\LanguageService.cs" />

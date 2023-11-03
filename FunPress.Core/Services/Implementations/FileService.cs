@@ -17,6 +17,13 @@ namespace FunPress.Core.Services.Implementations
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(filePath))
+                {
+                    _logger.LogWarning("Invoke in {Method}. File path is null", nameof(IsFileAvailable));
+                    
+                    return false;
+                }
+                
                 try
                 {
                     using (var _ = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
